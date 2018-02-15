@@ -1,0 +1,158 @@
+   public void updateEvilBallState()
+    {
+        if (!onAPlatform && upPressed == true)
+        {
+            upPressed = false;
+        }
+        if (needToDrop() && dropAvailable() != null)
+        {
+            System.out.println("Drop");
+            Platform drop = dropAvailable();
+            
+                if (getX() < drop.getX())
+                {
+                    setLeftPressed(false);
+                    setRightPressed(true);
+                }
+                else if (getX() > drop.getX())
+                {
+                    setRightPressed(false);
+                    setLeftPressed(true);
+                }            
+        }
+        else if (needToClimb())
+        {
+            //System.out.println("CLIMB!");
+            for (Platform a: platforms)
+                if (viewRect.intersects(a.getRect()) && a.getY() < getY() && myBall.getY() - 20 < getY()
+                        && onAPlatform && myBall.onAPlatform)
+                {
+                    upPressed = true;
+                }
+        }
+        else 
+        {
+            if (getX() < myBall.getX())
+            {
+                setLeftPressed(false);
+                setRightPressed(true);
+            }
+            if (getX() > myBall.getX())
+            {
+                setRightPressed(false);
+                setLeftPressed(true);
+            }
+        }
+            
+            for (Platform a : walls)
+            {
+                //System.out.println("Ball x: " + getX() + "  view x: " + xPos + " Wall: " + a.getX());
+                if (((getXMoment() > 0 && getX()  >= a.getX() - 60
+                        && getX() < a.getX() && getY() > a.getY()
+                        && getY() < a.getY() + a.getHeight() && getYMoment() == 0.0)
+                   ||
+                   (getXMoment() < 0 && getX() <= a.getX() + 60 + a.getWidth()
+                        && getX() > a.getX() + a.getWidth() && getY() > a.getY()
+                        && getY() < a.getY() + a.getHeight()&& getYMoment() == 0.0))
+                   )
+                {
+                   if(onAPlatform)
+                   {
+                       upPressed = true;
+                   }
+                }                 
+            }
+            
+            if (platformToLeft && xMoment == 0)
+            {                
+                xMoment = xMoment + 10;
+            }
+            if (platformToRight && xMoment == 0)
+            {
+                xMoment = xMoment - 10;
+            }
+        
+        viewRect.translate((int)xMoment, (int)yMoment);
+        
+    }
+
+        private Rectangle createView()
+    {
+        Rectangle recta = new Rectangle(getX() - (int)(60 / temp), getY() - (int)(50 / temp),
+                (int)(120 / temp), (int)(100 / temp));
+        return recta;
+    }
+    
+    @Override
+    public void updatePictureState()
+    {
+        rect.translate((int)xMoment, (int)yMoment);
+    }
+
+    public boolean needToDrop()
+    {
+        if (myBall != null)
+        {
+            return getY() < myBall.getY() + 15 && onAPlatform == true;
+        }
+        return false;
+    }
+
+    public boolean needToClimb()
+    {
+        if (myBall != null)
+        {
+            return getY() > myBall.getY() + 15 && myBall.onAPlatform == true;
+        }
+        return false;
+    }
+
+    public Platform dropAvailable()
+    {
+        Set<Platform> dropsAvailable = new HashSet<Platform>();
+        for (Platform d : dropList)
+        {
+            if ( getY() + getRad() == d.getY())
+            {
+                dropsAvailable.add(d);
+            }
+
+        }
+        Platform tempPlatform = null;
+        int testValue = 5000;
+        for (Platform p : dropsAvailable)
+        {
+            if (this.getDistance(p) < testValue)
+            {
+                tempPlatform = p;
+                testValue = this.getDistance(p);
+            }
+        }
+        return tempPlatform;
+    }
+
+    public int getStart()
+    {
+        return startTime;
+    }
+
+    public int getDistance(Platform p)
+    {
+        if (p.getX() < this.getX())
+        {
+            return this.getX() - p.getX();
+        }
+        else 
+        {
+            return p.getX() - this.getX();
+        }
+    }
+    
+    
+    @Override
+    public void draw(Graphics g)
+    {
+        g.setColor(color);
+        g.fillOval(xPos, yPos, xRad, yRad);
+    }
+}

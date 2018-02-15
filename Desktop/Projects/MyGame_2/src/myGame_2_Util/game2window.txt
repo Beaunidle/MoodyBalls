@@ -1,0 +1,522 @@
+import javax.swing.*;
+import java.awt.*;
+import static java.awt.Font.SERIF;
+import java.io.*;
+import java.util.*;
+import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.util.Scanner;
+import javax.imageio.ImageIO;
+/**
+ *
+ * @author Nathan
+ */
+public class Game2Window extends JFrame
+{
+    Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+    private final int FRAME_WIDTH = (int)screenSize.getWidth();
+    private final int FRAME_HEIGHT = (int)screenSize.getHeight();
+    
+    private DrawingPanel myDrawingPanel;
+    private final EndGame endGame;
+    private StartGame startGame;
+    private int counter;
+    private PhysicsEngine myPhysicsEngine;
+    private  Set<Platform> platforms;
+    private Set<Platform> walls;
+    private Set<Zone> zones;
+    private PlayerBall playerBall;
+    private Set<EvilBall> evil;
+    private EndSpot endSpot;
+    private Set<Platform> drops;
+    private Set<Platform> drawSet;
+    private Camera view;
+    BufferedImage img;
+    public boolean gameStarted = false;
+
+    
+
+    public Game2Window(String title)
+    {
+        super(title);
+        setSize(FRAME_WIDTH, FRAME_HEIGHT);
+        setVisible(true);
+        setResizable(false);
+
+        platforms = new HashSet();
+        walls = new HashSet();
+        drops = new HashSet();
+        zones = new HashSet();
+        evil = new HashSet();
+        drawSet = new HashSet();
+        drawSet = Collections.synchronizedSet(drawSet);
+        
+        myDrawingPanel = new DrawingPanel(getAvailableWidth(), getAvailableHeight());
+        startGame = new StartGame(getAvailableWidth(), getAvailableHeight());
+        endGame = new EndGame(getAvailableWidth(), getAvailableHeight());        
+        endGame.setEnabled(false);
+        endGame.setVisible(false);
+        
+        try
+        {
+            img = ImageIO.read(new File("C:\\Users\\Nathan\\Desktop\\Projects\\MyGame_2\\src\\myGame_2_images\\blueSky.jpg"));        
+        }
+        catch(IOException e)
+        {
+            
+        }
+        
+      
+        
+        //startGame.addKeyListener(new Mover());
+        //endGame.addKeyListener(new Mover());
+        //getContentPane().add(startGame);
+        //getContentPane().add(myDrawingPanel);
+        //getContentPane().add(endGame);
+
+        setVisible(true);
+        
+        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+        
+    }
+    
+    public void start()
+    {
+        addKeyListener(new Mover());            
+        getContentPane().add(myDrawingPanel);
+        myDrawingPanel.setVisible(false);
+        //myDrawingPanel.setEnabled(false);
+        getContentPane().add(startGame);
+        getContentPane().add(endGame);
+        //gameStarted = true;
+        
+    }
+    
+    public void startTheGame()
+        {
+            myDrawingPanel = new DrawingPanel(getAvailableWidth(), getAvailableHeight());
+            startGame.setVisible(false);
+            startGame.setEnabled(false);
+            getContentPane().add(myDrawingPanel);
+            
+            gameStarted = true;                                     
+        }
+    
+        public boolean getGameStarted()
+        {
+            return gameStarted;
+        }
+        
+        public void update()
+        {
+            requestFocus();
+            counter = 0;
+            while(getGameStarted())
+            {   
+                Rectangle es = new Rectangle(endSpot.getX(), endSpot.getY(), endSpot.getRad(), endSpot.getRad());
+
+                for (EvilBall e : evil)
+                {
+                    if (playerBall.getRect().intersects(e.getRect()))
+                    {
+                        gameStarted = false;
+                        myDrawingPanel.setVisible(false);
+                        myDrawingPanel.setEnabled(false);
+                        endGame.setVisible(true);
+                        endGame.setEnabled(true);
+                    }
+                }
+
+                if (playerBall.getRect().intersects(es))
+                {
+                    System.out.println("Level complete");
+                    gameStarted = false;
+                    try
+                    {
+                        myDrawingPanel.createPlatforms("C:\\Users\\Nathan\\Desktop\\Projects\\MyGame_2\\src\\myGame_2_levels\\2.txt");
+                    }
+                    catch (FileNotFoundException e)
+                    {
+                        System.out.println("e");
+                    }
+                    view = new Camera(getAvailableWidth(), getAvailableHeight(), playerBall);
+                    try
+                    {
+                        Thread.sleep(1000);
+                    }
+                    catch(InterruptedException e)
+                    {
+                        System.out.println("e");
+                    }
+                    gameStarted = true;
+                    //update();
+                }
+
+                counter ++;
+                myDrawingPanel.updatePictureState();
+                
+                
+                
+                drawSet = view.change(playerBall.getLocalPlatforms());
+                repaint();
+                
+                try
+                {
+                    Thread.sleep(20);
+                }
+                catch (InterruptedException f)
+                {
+                    System.exit(0);
+                }
+                
+            }
+        }
+        
+        public void resetGame()
+        {
+            try
+                    {
+                        myDrawingPanel.createPlatforms("C:\\Users\\Nathan\\Desktop\\Projects\\MyGame_2\\src\\myGame_2_levels\\2.1.txt");
+                    }
+                    catch (FileNotFoundException e)
+                    {
+                        System.out.println("e");
+                    }
+                    view = new Camera(getAvailableWidth(), getAvailableHeight(), playerBall);
+                    try
+                    {
+                        Thread.sleep(1000);
+                    }
+                    catch(InterruptedException e)
+                    {
+                        System.out.println("e");
+                    }
+                    gameStarted = true;
+                    update();
+        }
+    
+        private int getAvailableWidth()
+        {
+            return getWidth() - getInsets().left - getInsets().right;
+        }
+
+        //note you may also need to adjust for menu height
+        private int getAvailableHeight()
+        {
+            return getHeight() - getInsets().top - getInsets().bottom;
+        }
+
+        //the game window
+        public class DrawingPanel extends JPanel
+        {
+            public DrawingPanel(int width, int height)
+            {
+                try
+                {
+                    createPlatforms("C:\\Users\\Nathan\\Desktop\\Projects\\MyGame_2\\src\\myGame_2_levels\\steve.txt");
+                }
+                catch (FileNotFoundException e)
+                {
+                    System.out.println("e");
+                }
+                setSize(width, height);
+                myPhysicsEngine = new PhysicsEngine();
+                view = new Camera(width, height, playerBall);
+                this.setBackground(Color.CYAN);
+                
+            }
+
+            //draws the game window
+            @Override
+            public void paintComponent(Graphics g)
+            {
+                super.paintComponent(g);
+                g.drawImage(img, 0, 0, getWidth(), getHeight(), rootPane);
+                
+                for (Platform a : drawSet)
+                {
+                    a.draw(g);
+                }
+                playerBall.draw(g);
+
+                if (endSpot.getX() > playerBall.getX() - 400 && endSpot.getX() < playerBall.getX() + 400
+                            && endSpot.getY() < playerBall.getY() + 200 && endSpot.getY() > playerBall.getY() - 250)
+                {
+                    view.drawEnd(endSpot);
+                    endSpot.draw(g);
+                }
+                for(EvilBall e : evil)
+                {
+                    if (counter > e.getStart())
+                    {
+                        if (e.getRect().getX() > playerBall.getX() - 400 && e.getX() < playerBall.getX() + 400
+                            && e.getY() < playerBall.getY() + 200 && e.getY() > playerBall.getY() - 250)
+                        {
+                            view.drawEvil(e);
+                            e.draw(g);
+                        }
+                    }
+                }
+            }
+
+            public void updatePictureState()
+            {
+                playerBall.resetLocalArea();
+                getSurroundings(playerBall);
+                
+                myPhysicsEngine.updatePhysicsState(playerBall);
+                //System.out.println("Player position: " + playerBall.getX() + "," + playerBall.getY());
+                for (EvilBall e : evil)
+                {
+                    if (counter > e.getStart() && playerBall != null)
+                    {
+                        e.resetLocalArea();
+                        getSurroundings(e);
+                        e.updateEvilBallState();
+                        myPhysicsEngine.updatePhysicsState(e);
+
+                    }
+                }                
+                //repaint();
+            }
+
+            public synchronized void getSurroundings(MoveableObject m)
+            {
+                for(Platform a: platforms)
+                {
+                    if(a.getX() > m.getX() - 400 && a.getX() < m.getX() + 400
+                            && a.getY() < m.getY() + 200 && a.getY() > m.getY() - 250)
+                    {
+                        m.addPlatform(a);
+                    }
+                    
+                }
+                for(Platform w: walls)
+                {
+                    if(w.getX() > m.getX() - 400 && w.getX() < m.getX() + 400
+                            && w.getY() < m.getY() + 200 && w.getY() > m.getY() - 250)
+                    {
+                        m.addPlatform(w);
+                    }
+                }
+            }
+            private void createPlatforms(String input) throws FileNotFoundException
+            {
+                platforms.clear();
+                walls.clear();
+                drops.clear();
+                zones.clear();
+                evil.clear();
+                
+                Scanner can = new Scanner(new BufferedReader(new FileReader(input))).useDelimiter(",");
+                while (can.hasNextLine())
+                {
+                    int xp = can.nextInt();
+                    int yp = can.nextInt();
+                    int w = can.nextInt();
+                    int h = can.nextInt();
+                    String pt = can.next();
+                    if (pt.equals("PLATFORM"))
+                    {
+                        platforms.add(new Platform(xp, yp, w, h, PlatformType.PLATFORM));
+                    }
+                    if (pt.equals("WALL"))
+                    {
+                        walls.add(new Platform(xp, yp, w, h, PlatformType.WALL));
+                    }
+                    if (pt.equals("WALLFILLER"))
+                    {
+                        walls.add(new Platform(xp, yp, w, h, PlatformType.WALL));
+                    }
+                    if (pt.equals("DROP"))
+                    {
+                        drops.add(new Platform(xp, yp, w, h, PlatformType.DROP));
+                    }
+                    if (pt.equals("PLAYER"))
+                    {
+                        playerBall = new PlayerBall(xp, yp, Color.black, w, zones);
+                    }
+                    if (pt.equals("END"))
+                    {
+                        endSpot = new EndSpot(xp, yp);
+                    }
+                    if (pt.equals("EVIL"))
+                    {
+                        evil.add(new EvilBall(playerBall, xp, yp, Color.red, platforms, drops, walls, w, h, zones));                      
+                    }
+                    if (pt.equals("ZONE"))
+                    {
+                        zones.add(new Zone(xp, yp, w));
+                    }
+                    can.nextLine();
+                }
+                can.close();                
+            }
+    }
+
+        
+    public class StartGame extends JPanel
+{
+    
+        private final JPanel textPanel;
+        private final JPanel buttons;
+        private final JTextArea startTheGame;
+        private final JButton start, exit;
+        
+
+        public StartGame(int width, int height)
+        {
+            setSize(width, height);
+            setLayout(new GridLayout(2,1));
+            setBackground(Color.GREEN);
+
+            textPanel = new JPanel();
+            textPanel.setSize(width, height / 2);
+            textPanel.setBackground(Color.GREEN);
+            textPanel.setLayout(null);
+            
+            startTheGame = new JTextArea("Welcome to the game");
+            startTheGame.setFont(new Font(SERIF, 2, 34));
+            //startTheGame.setSize(textPanel.getWidth()/4, textPanel.getHeight()/4);
+            startTheGame.setBackground(Color.yellow);
+            //startTheGame.setLineWrap(true);
+            //startTheGame.setLocation(200, 500);
+            startTheGame.setBounds(textPanel.getWidth()/2-150, 200, 300, 50);
+            startTheGame.setLayout(new BorderLayout());
+            textPanel.add(startTheGame);
+            add(textPanel, BorderLayout.NORTH);
+
+            buttons = new JPanel();
+            buttons.setSize(width, height / 2);
+            buttons.setBackground(Color.red);
+            start = new JButton("Start");
+            exit = new JButton("Exit");
+            start.addActionListener(new ButtonPress());
+            exit.addActionListener(new ButtonPress());
+            buttons.add(start);
+            buttons.add(exit);
+            add(buttons, BorderLayout.SOUTH);
+        }
+        
+        
+
+        private class ButtonPress implements ActionListener
+            {
+                public void actionPerformed(ActionEvent e)
+                {
+                    Object buttonPressed = e.getSource();
+                    if(buttonPressed == start)
+                    {
+                        System.out.println("Button pressed");
+                        startTheGame();
+                    }
+                    if( buttonPressed == exit)
+                    {
+                        System.exit(0);
+                    }
+
+                }
+            }
+    
+}
+    
+    private class EndGame extends JPanel
+    {
+        private final JPanel textPanel;
+        private final JPanel buttons;
+        private final JTextArea gameOver;
+        private final JButton restart, exit;
+
+
+        public EndGame(int width, int height)
+        {
+            setSize(width, height);
+            setLayout(new GridLayout(2,1));
+
+            textPanel = new JPanel();
+            textPanel.setSize(width, height / 2);
+            textPanel.setBackground(Color.red);
+            textPanel.setLayout(new BorderLayout());
+            gameOver = new JTextArea("Game over. Final score: " +
+                        "\nPlay again?");
+            textPanel.add(gameOver, BorderLayout.CENTER);
+            add(textPanel);
+
+            buttons = new JPanel();
+            buttons.setSize(width, height / 2);
+            buttons.setBackground(Color.red);
+            restart = new JButton("Restart");
+            exit = new JButton("Exit");
+            restart.addActionListener(new ButtonPress());
+            exit.addActionListener(new ButtonPress());
+            buttons.add(restart);
+            buttons.add(exit);
+            add(buttons);
+        }
+
+        private class ButtonPress implements ActionListener
+            {
+                public void actionPerformed(ActionEvent e)
+                {
+                    Object buttonPressed = e.getSource();
+                    if(buttonPressed == restart)
+                    {
+                        endGame.setEnabled(false);
+                        endGame.setVisible(false);
+                        myDrawingPanel.setVisible(true);
+                        resetGame();
+                    }
+                    if( buttonPressed == exit)
+                    {
+                        System.exit(0);
+                    }
+
+                }
+            }
+    }
+
+
+
+    
+    public class Mover extends KeyAdapter
+    {
+        @Override
+        public void keyPressed(KeyEvent e)
+        {
+            int event = e.getKeyCode();
+
+            if (event == KeyEvent.VK_LEFT)
+            {
+                playerBall.setLeftPressed(true);
+            }
+            if (event == KeyEvent.VK_RIGHT) 
+            {
+                playerBall.setRightPressed(true);
+            }
+            if (event == KeyEvent.VK_UP)
+            {
+                playerBall.setUpPressed(true); 
+            }
+        }
+
+        @Override
+        public void keyReleased(KeyEvent e)
+        {
+            int event = e.getKeyCode();
+            if(event == KeyEvent.VK_LEFT)
+            {
+                playerBall.setLeftPressed(false);
+            }
+            if(event == KeyEvent.VK_RIGHT)
+            {
+                playerBall.setRightPressed(false);
+            }
+            if(event == KeyEvent.VK_UP)
+            {
+                playerBall.setUpPressed(false);
+            }
+        }
+    }
+
+}
