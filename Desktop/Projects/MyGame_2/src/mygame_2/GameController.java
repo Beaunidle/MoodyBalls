@@ -340,7 +340,6 @@ public class GameController
                 zones.clear();
                 evil.clear();
                 File input = new File("./src/myGame_2_levels/" + level + ".txt");
-                System.out.println(input.getAbsolutePath());
                 
                 Scanner can = new Scanner(new BufferedReader(new FileReader(input))).useDelimiter(",");
                 while (can.hasNextLine())
