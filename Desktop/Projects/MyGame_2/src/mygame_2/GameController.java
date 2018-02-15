@@ -15,8 +15,10 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Scanner;
@@ -337,7 +339,9 @@ public class GameController
                 drops.clear();
                 zones.clear();
                 evil.clear();
-                String input = ("C:\\Users\\Nathan\\Desktop\\Projects\\MyGame_2\\src\\myGame_2_levels\\" + level + ".txt");
+                File input = new File("./src/myGame_2_levels/" + level + ".txt");
+                System.out.println(input.getAbsolutePath());
+                
                 Scanner can = new Scanner(new BufferedReader(new FileReader(input))).useDelimiter(",");
                 while (can.hasNextLine())
                 {
